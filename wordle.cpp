@@ -55,8 +55,13 @@ class wordleWriter{
   }
 
   void removeCharacterFromTextBox(){
-    textBox[cursor_x] = 0;
-    if(cursor_x > 0){cursor_x--;}
+    if(textBox[cursor_x]){
+      textBox[cursor_x] = 0;
+    }
+    else{
+      if(cursor_x > 0){cursor_x--;}
+      textBox[cursor_x] = 0;
+    }
   }
 
   void initializeFinalWord(std::string word){
@@ -202,8 +207,14 @@ int main(){
     debug::debugFinalWord(stdscr, &game);
 
     for(int i = 0; i < ans.size(); i++){
+      std::string category;
+      if(i == 0){category = "correct";}
+      if(i == 1){category = "semi";}
+      if(i == 2){category = "incorrect";}
+
+      mvwprintw(stdscr, 20+i, 0, category.c_str());
       for(int j = 0; j < ans[i].size(); j++){
-        mvwprintw(stdscr, 20+i, j, std::to_string(ans[i][j]).c_str());
+        mvwprintw(stdscr, 20+i, 10+j, std::to_string(ans[i][j]).c_str());
       }
     }
     mvwprintw(stdscr, 10, 0, std::to_string(game.cursor_x).c_str());

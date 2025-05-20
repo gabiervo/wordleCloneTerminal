@@ -83,7 +83,7 @@ class wordleWriter{
     return 0;
   }
 
-  std::vector<std::vector<int>> checkWordInput(){
+  std::vector<std::vector<int>> checkWordInput(WINDOW* win = stdscr){
     if(testInputValidity()){
       //generate textBox word map
       std::map<char, std::vector<int>> inputWordMap;
@@ -108,6 +108,7 @@ class wordleWriter{
         //check if any of the positions in the input word map match the ones in the output word map
           for(int i = 0; i < it->second.size(); i++){
             bool isCorrect = false;
+            int letterCount = finalWord[it->first].size() - it->second.size() ;
             for(int j = 0; j < finalWord[it->first].size(); j++){
               if(finalWord[it->first][j] == it->second[i]){
                 correctLetters.emplace_back(it->second[i]);
@@ -115,9 +116,8 @@ class wordleWriter{
                 isCorrect = true;
               }
             }
-            //semi correct letter checking
-            //REWRITE, THIS IS SHIT AND PROVISORY
-            if(!isCorrect){
+            if(!isCorrect && letterCount > 0){
+              letterCount--;
               semiCorrectLetters.emplace_back(it->second[i]);
               accessibleAnswer[it->second[i]] = 1;
             }
@@ -272,7 +272,7 @@ int main(){
         //enter
         else if(chChecker == 10){
           gameState = 1;
-          ans = game.checkWordInput();
+          ans = game.checkWordInput(debugWin);
           //gameAns = accessibleAnswer
           gameAns = ans[3];
           //gameAns = (std::vector<int>){2, 1, 0, 2, 2};

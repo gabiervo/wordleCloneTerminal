@@ -108,7 +108,7 @@ class wordleWriter{
         //check if any of the positions in the input word map match the ones in the output word map
           for(int i = 0; i < it->second.size(); i++){
             bool isCorrect = false;
-            int letterCount = finalWord[it->first].size() - it->second.size() ;
+            int letterCount = 0;
             for(int j = 0; j < finalWord[it->first].size(); j++){
               if(finalWord[it->first][j] == it->second[i]){
                 correctLetters.emplace_back(it->second[i]);
@@ -116,8 +116,8 @@ class wordleWriter{
                 isCorrect = true;
               }
             }
-            if(!isCorrect && letterCount > 0){
-              letterCount--;
+            if(!isCorrect && letterCount <= it->second.size()){
+              letterCount++;
               semiCorrectLetters.emplace_back(it->second[i]);
               accessibleAnswer[it->second[i]] = 1;
             }
@@ -239,6 +239,7 @@ int main(){
   init_color(COLOR_BLACK, 0, 0, 0);
   init_pair(1, COLOR_WHITE, COLOR_YELLOW);
   init_pair(2, COLOR_WHITE, CORRECT_GREEN);
+  init_pair(3, COLOR_WHITE, COLOR_RED);
   use_default_colors();
 
   for(int i = 0; i < 6; i++){
@@ -280,7 +281,7 @@ int main(){
           pastResults[currentWordIndex] = game.textBox;
           game.clearTextBox();
         }
-        else{
+        else if(chChecker >= 65 && chChecker <= 122){
           drawCharacterOnTextBox(resultsWindows[currentWordIndex], game.cursor_x, game.cursor_y, chChecker);
           game.addCharacterToTextBox(chChecker);
           drawWindowLetterBoxes(resultsWindows[currentWordIndex], 0);
@@ -324,8 +325,8 @@ int main(){
         wattroff(resultsWindows[printIndex], COLOR_PAIR(colorPairIndex));
         wrefresh(resultsWindows[printIndex]);
 
-        //half a second
-        usleep(1000000/2);
+        //half of a second
+        usleep(100000*5);
       }
       gameState = 0;
     }

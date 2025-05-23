@@ -112,16 +112,19 @@ class wordleWriter{
         //check if any of the positions in the input word map match the ones in the output word map
           for(int i = 0; i < it->second.size(); i++){
             bool isCorrect = false;
-            int letterCount = 0;
+            int letterCount = 2;
+            int addLetters = 0;
+
             for(int j = 0; j < finalWord[it->first].size(); j++){
               if(finalWord[it->first][j] == it->second[i]){
                 correctLetters.emplace_back(it->second[i]);
                 accessibleAnswer[it->second[i]] = 2;
+                addLetters += 1;
                 isCorrect = true;
               }
             }
-            if(!isCorrect && letterCount <= it->second.size()){
-              letterCount++;
+            if(!isCorrect && letterCount - addLetters > 0){
+              addLetters += 1;
               semiCorrectLetters.emplace_back(it->second[i]);
               accessibleAnswer[it->second[i]] = 1;
             }
@@ -319,7 +322,7 @@ int main(){
         int initXPos = 1 + 9*i;
         int printIndex = currentWordIndex-1;
 
-        int colorPairIndex = gameAns[i];
+        int colorPairIndex = (gameAns[i] != 0) ? gameAns[i] : 3;
         for(int j = 0; j < 3; j++){
           int initYPos = j+1;
           wattron(resultsWindows[printIndex], COLOR_PAIR(colorPairIndex));

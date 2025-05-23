@@ -9,6 +9,7 @@
 #include <map>
 #include <utility>
 #include <unistd.h>
+#include <fstream>
 #define CORRECT_GREEN 9
 #define INCORRECT_RED 10
 
@@ -27,6 +28,9 @@ class wordleWriter{
   //character and positions
   std::map<char, std::vector<int>> finalWord;
   std::string finalWordString;
+
+  std::ifstream letterIn;
+  char currentLetter = 'a';
 
   wordleWriter(std::string mode, std::string finalWord=""){
     if(mode == "online"){

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -96,7 +97,6 @@ class wordleWriter{
         inputWordMap[(char)textBox[i]].emplace_back(i);
       }
 
-      int i = 0;
       //for debugging purposes
       std::vector<int> correctLetters;
       std::vector<int> semiCorrectLetters;
@@ -104,36 +104,53 @@ class wordleWriter{
 
       //actually used in game code
       std::vector<int> accessibleAnswer = (std::vector<int>){0, 0, 0, 0, 0};
+
       for(std::map<char, std::vector<int>>::iterator it = inputWordMap.begin(); it != inputWordMap.end(); ++it){
-        //if letter exists in map
+        //if the current letter exists within the final word
         if(this->finalWord.contains(it->first)){
-        //check if it has the same position or an incorrect position
+          std::vector<int> inputLetterVector(it->second);
+          std::vector<int> finalWordLetterVector(finalWord[it->first]);
 
-        //check if any of the positions in the input word map match the ones in the output word map
-          for(int i = 0; i < it->second.size(); i++){
-            bool isCorrect = false;
-            int letterCount = 2;
-            int addLetters = 0;
+          //variables for semi correct
+          int letterCount = finalWordLetterVector.size();
+          int addLetters = 0;
 
-            for(int j = 0; j < finalWord[it->first].size(); j++){
-              if(finalWord[it->first][j] == it->second[i]){
-                correctLetters.emplace_back(it->second[i]);
-                accessibleAnswer[it->second[i]] = 2;
-                addLetters += 1;
-                isCorrect = true;
+          //check if any of the positions in the input word map match the ones in the output word map
+          // checks any of the correct letters
+            for(int i = 0; i < inputLetterVector.size(); i++){
+
+              for(int j = 0; j < finalWordLetterVector.size(); j++){
+                if(finalWordLetterVector[j] == inputLetterVector[i]){
+                  correctLetters.emplace_back(inputLetterVector[i]);
+                  accessibleAnswer[inputLetterVector[i]] = 2;
+                  addLetters += 1;
+                }
               }
+
+              //checks the semi correct letters in the last iteration:
+              // if there is an i instance of an x letter that have not been deemed correct
+              // in the final word, and there is also a j instance x letter in the input word that have no classification
+              // that same j instance of x letter is deemed semi correct
+              //
+              // note: this code is a mess, ill fix it when I fix it, what matters is that if it works it works
+              if(i == inputLetterVector.size()-1 && (letterCount - addLetters) > 0 && inputLetterVector.size() > addLetters){
+                for(int i = 0 ; i < inputLetterVector.size(); i++){
+                  if(accessibleAnswer[inputLetterVector[i]] != 2){
+                    addLetters += 1;
+                    semiCorrectLetters.emplace_back(inputLetterVector[i]);
+                    accessibleAnswer[inputLetterVector[i]] = 1;
+
+                    if((letterCount - addLetters) <= 0){break;}
+                  }
+                }
+              }
+
             }
-            if(!isCorrect && letterCount - addLetters > 0){
-              addLetters += 1;
-              semiCorrectLetters.emplace_back(it->second[i]);
-              accessibleAnswer[it->second[i]] = 1;
-            }
+
           }
-        }
         else{
           addVectorIntoVector(it->second, &incorrectLetters);
         }
-        i++;
       }
       return (std::vector<std::vector<int>>){correctLetters, semiCorrectLetters, incorrectLetters, accessibleAnswer};
     }

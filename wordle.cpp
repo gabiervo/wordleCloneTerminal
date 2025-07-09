@@ -2,7 +2,9 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
+#include <iterator>
 #include <ncurses.h>
+#include <numeric>
 #include <poll.h>
 #include <string>
 #include <sys/poll.h>
@@ -11,6 +13,10 @@
 #include <utility>
 #include <unistd.h>
 #include <fstream>
+
+//rng related
+#include <cstdlib>
+#include <ctime>
 #define CORRECT_GREEN 9
 #define INCORRECT_RED 10
 
@@ -20,10 +26,54 @@ void addVectorIntoVector(std::vector<int> vectorIn, std::vector<int>* vectorOut)
   }
 }
 
+class wordGenerator{
+  public:
+  const std::string alphabet = "abcdefghijklmnopqrstuvwxyz";
+  std::string dictDirectory;
+
+  wordGenerator(std::string directory){
+    //initialize alphabet and directory from which we get the word dictionary
+    this->dictDirectory = directory;
+  }
+
+  std::string generateWord(){
+    //initialize the rng seed based on the current time
+    srand(time(0));
+    char letter = alphabet[rand() % 26];
+    int lineIndex;
+
+    std::fstream wordDict(dictDirectory + letter + ".txt", std::ifstream::in);
+    if(wordDict.good()){
+      std::string target;
+      int lineCount = 0;
+
+      while(std::getline(wordDict, target)){
+        lineCount++;
+      }
+
+      lineIndex = rand() % lineCount;
+      int currLine;
+      wordDict.clear();
+      wordDict.seekg(0);
+
+      while(std::getline(wordDict, target)){
+        if(currLine == lineIndex){break;}
+        currLine++;
+      }
+
+      return target;
+    }
+    else{
+      return "errar";
+    }
+  }
+};
+
 class wordleWriter{
   public:
   uint8_t cursor_x = 0;
   uint8_t cursor_y;
+  uint8_t setLetters = 0;
 
   std::string textBox;
   //character and positions
@@ -33,38 +83,40 @@ class wordleWriter{
   std::ifstream letterIn;
   char currentLetter = 'a';
 
-  wordleWriter(std::string mode, std::string finalWord=""){
+  wordleWriter(std::string mode, std::string fWord=""){
     if(mode == "online"){
       //make fetching words work online
     }
 
     if(mode == "offline"){
-      if(finalWord != "" && checkWordIntegrity(finalWord)){
-        finalWordString = finalWord;
-        initializeFinalWord(finalWord);
+      if(fWord != "" && checkWordIntegrity(fWord)){
+        finalWordString = fWord;
+        initializeFinalWord(fWord);
       }
       else{
         //fetch word from dictionary, but since i havent made it just throw err
-        finalWord = "error";
-        initializeFinalWord(finalWord);
+        finalWordString = "error";
+        initializeFinalWord(finalWordString);
       }
     }
   }
 
-  int checkWordIntegrity(std::string word){
-    if(word.length()==5){return 1;}
-    return 0;
+  static bool checkWordIntegrity(std::string word){
+    if(word.length()==5){return true;}
+    return false;
   }
 
   void addCharacterToTextBox(int character){
     if(character < 97 || character > 122){return;}
     textBox[cursor_x] = (char)character;
     if(cursor_x < 4){cursor_x++;}
+    if(setLetters < 5){setLetters++;};
   }
 
   void removeCharacterFromTextBox(){
     if(cursor_x > 0 && !textBox[cursor_x]){cursor_x--;}
     textBox[cursor_x] = 0;
+    if(setLetters > 0){setLetters--;}
   }
 
   void initializeFinalWord(std::string word){
@@ -103,7 +155,10 @@ class wordleWriter{
       std::vector<int> incorrectLetters;
 
       //actually used in game code
-      std::vector<int> accessibleAnswer = (std::vector<int>){0, 0, 0, 0, 0};
+      int incorrectColorPairIndex = 3;
+      int correctColorPairIndex = 2;
+      int semiCorrectColorPairIndex = 1;
+      std::vector<int> accessibleAnswer = (std::vector<int>){3, 3, 3, 3, 3};
 
       for(std::map<char, std::vector<int>>::iterator it = inputWordMap.begin(); it != inputWordMap.end(); ++it){
         //if the current letter exists within the final word
@@ -122,7 +177,7 @@ class wordleWriter{
               for(int j = 0; j < finalWordLetterVector.size(); j++){
                 if(finalWordLetterVector[j] == inputLetterVector[i]){
                   correctLetters.emplace_back(inputLetterVector[i]);
-                  accessibleAnswer[inputLetterVector[i]] = 2;
+                  accessibleAnswer[inputLetterVector[i]] = correctColorPairIndex;
                   addLetters += 1;
                 }
               }
@@ -138,7 +193,7 @@ class wordleWriter{
                   if(accessibleAnswer[inputLetterVector[i]] != 2){
                     addLetters += 1;
                     semiCorrectLetters.emplace_back(inputLetterVector[i]);
-                    accessibleAnswer[inputLetterVector[i]] = 1;
+                    accessibleAnswer[inputLetterVector[i]] = semiCorrectColorPairIndex;
 
                     if((letterCount - addLetters) <= 0){break;}
                   }
@@ -165,6 +220,7 @@ class wordleWriter{
     this->textBox.resize(0);
     this->textBox = (*new std::string(""));
     this->cursor_x = 0;
+    this->setLetters = 0;
   }
 };
 
@@ -244,7 +300,8 @@ int main(){
   keypad(stdscr, TRUE);
 
   //init game
-  wordleWriter game("offline", "tests");
+  wordGenerator gen("/Users/gabrielalvesiervolino/Desktop/Coding/games/wordleClone/dictionary/dicts/");
+  wordleWriter game("offline", gen.generateWord());
   debug debugger;
 
   std::vector<WINDOW*> resultsWindows;
@@ -255,7 +312,7 @@ int main(){
 
   //0 is for play, 1 is for result scr
   int gameState = 0;
-  std::string pastResults[5];
+  std::string pastResults[6];
 
   start_color();
   //here so that ncurses doesn't change terminal background color
@@ -280,7 +337,7 @@ int main(){
   drawWindowLetterBoxes(resultsWindows[currentWordIndex], 0);
 
   while(true){
-    bool shouldDebug = true;
+    bool shouldDebug = false;
     if(gameState == 0){
       if(poll(&poller, 1, 100) == 1){
         chChecker = wgetch(stdscr);
@@ -296,14 +353,16 @@ int main(){
 
         //enter
         else if(chChecker == 10){
-          gameState = 1;
-          ans = game.checkWordInput(debugWin);
-          //gameAns = accessibleAnswer
-          gameAns = ans[3];
-          //gameAns = (std::vector<int>){2, 1, 0, 2, 2};
-          if(currentWordIndex != 6){currentWordIndex++;}
-          pastResults[currentWordIndex] = game.textBox;
-          game.clearTextBox();
+          if(game.setLetters == 5){
+            gameState = 1;
+            ans = game.checkWordInput(debugWin);
+            //gameAns = accessibleAnswer
+            gameAns = ans[3];
+            //gameAns = (std::vector<int>){2, 1, 0, 2, 2};
+            pastResults[currentWordIndex] = game.textBox;
+            if(currentWordIndex != 6){currentWordIndex++;}
+            game.clearTextBox();
+          }
         }
         else if(chChecker >= 65 && chChecker <= 122){
           drawCharacterOnTextBox(resultsWindows[currentWordIndex], game.cursor_x, game.cursor_y, chChecker);
@@ -327,7 +386,7 @@ int main(){
               mvwprintw(debugWin, 0+i, 30+j, std::to_string(ans[i][j]).c_str());
             }
           }
-          mvwprintw(debugWin, 3, 0, std::to_string(game.cursor_x).c_str());
+          mvwprintw(debugWin, 3, 0, std::to_string(game.setLetters).c_str());
           game.wprintTextBox(debugWin);
         }
 
@@ -339,18 +398,21 @@ int main(){
         int initXPos = 1 + 9*i;
         int printIndex = currentWordIndex-1;
 
-        int colorPairIndex = (gameAns[i] != 0) ? gameAns[i] : 3;
+        uint8_t printIndent = 3;
+
+        int colorPairIndex = gameAns[i];
+        //printing background
         for(int j = 0; j < 3; j++){
           int initYPos = j+1;
           wattron(resultsWindows[printIndex], COLOR_PAIR(colorPairIndex));
           mvwprintw(resultsWindows[printIndex], initYPos, initXPos, "       ");
         }
-        mvwaddch(resultsWindows[currentWordIndex-1], 2, 3+initXPos, pastResults[currentWordIndex][i]);
+        mvwaddch(resultsWindows[printIndex], 2, printIndent+initXPos, pastResults[printIndex][i]);
         wattroff(resultsWindows[printIndex], COLOR_PAIR(colorPairIndex));
         wrefresh(resultsWindows[printIndex]);
 
         //half of a second
-        usleep(100000*5);
+        usleep(100000*1);
       }
       gameState = 0;
     }

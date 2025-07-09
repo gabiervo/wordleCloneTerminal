@@ -1,2 +1,2 @@
 main:
-	g++ ./wordle.cpp ./game.cpp -o wordle -lncurses -std=c++20
+	g++ ./wordle.cpp ./game.cpp ./include/writer.cpp -lncurses -o wordle -std=c++20

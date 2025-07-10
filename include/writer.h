@@ -1,3 +1,5 @@
+#ifndef WRITER_H
+#define WRITER_H
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -24,3 +26,5 @@ class wordleWriter{
   std::vector<std::vector<int>> checkWordInput(WINDOW* win = stdscr);
   void clearTextBox();
 };
+
+#endif

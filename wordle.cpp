@@ -1,10 +1,5 @@
-#include <algorithm>
-#include <cmath>
 #include <cstdint>
-#include <iostream>
-#include <iterator>
 #include <ncurses.h>
-#include <numeric>
 #include <poll.h>
 #include <string>
 #include <sys/poll.h>
@@ -12,67 +7,25 @@
 #include <map>
 #include <utility>
 #include <unistd.h>
-#include <fstream>
 
 #include "./include/writer.h"
+#include "./include/generator.h"
 
 //rng related
 #include <cstdlib>
 #include <ctime>
 #define CORRECT_GREEN 9
 #define INCORRECT_RED 10
-#define SHOULD_DEBUG true
-
-class wordGenerator{
-  public:
-  const std::string alphabet = "abcdefghijklmnopqrstuvwxyz";
-  std::string dictDirectory;
-
-  wordGenerator(std::string directory){
-    //initialize alphabet and directory from which we get the word dictionary
-    this->dictDirectory = directory;
-  }
-
-  std::string generateWord(){
-    //initialize the rng seed based on the current time
-    srand(time(0));
-    char letter = alphabet[rand() % 26];
-    int lineIndex;
-
-    std::fstream wordDict(dictDirectory + letter + ".txt", std::ifstream::in);
-    if(wordDict.good()){
-      std::string target;
-      int lineCount = 0;
-
-      while(std::getline(wordDict, target)){
-        lineCount++;
-      }
-
-      lineIndex = rand() % lineCount;
-      int currLine;
-      wordDict.clear();
-      wordDict.seekg(0);
-
-      while(std::getline(wordDict, target)){
-        if(currLine == lineIndex){break;}
-        currLine++;
-      }
-
-      return target;
-    }
-    else{
-      return "errar";
-    }
-  }
-};
 
 class debug{
   public:
   int chCheck = 0;
   const char* printer;
+  bool shouldDebug;
 
   void debugIn(WINDOW* win, int ch){
     chCheck = ch;
+    if(ch == 32){shouldDebug = (shouldDebug == true) ? false : true;}
   }
   void debugOut(WINDOW* win){
     //we need to do this conversion in this specific spot, idk why
@@ -125,6 +78,8 @@ void drawCharacterOnTextBox(WINDOW* win, int curs_x, int curs_y, char newLetter)
 }
 
 int main(){
+  bool SHOULD_DEBUG = false;
+
   pollfd poller;
   memset(&poller, 0, sizeof(poller));
   poller.fd = 0;
@@ -194,7 +149,8 @@ int main(){
 
         //enter
         else if(chChecker == 10){
-          if(game.setLetters == 5){
+          //checks if we have 5 letters in the word and if it is an actual word that exists
+          if(game.setLetters == 5 && gen.checkWordExistence(game.textBox)){
             gameState = 1;
             ans = game.checkWordInput(debugWin);
             //gameAns = accessibleAnswer
@@ -211,7 +167,7 @@ int main(){
           drawWindowLetterBoxes(resultsWindows[currentWordIndex], 0);
         }
 
-        if(SHOULD_DEBUG){
+        if(debugger.shouldDebug){
           wclear(debugWin);
           debugger.debugOut(debugWin);
           debug::debugFinalWord(debugWin, &game);
@@ -230,6 +186,7 @@ int main(){
           mvwprintw(debugWin, 3, 0, std::to_string(game.setLetters).c_str());
           game.wprintTextBox(debugWin);
         }
+        else{wclear(debugWin); wrefresh(debugWin);}
 
       }
     }

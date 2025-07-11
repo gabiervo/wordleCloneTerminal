@@ -21,7 +21,7 @@ std::string wordGenerator::generateWord(){
     }
 
     lineIndex = rand() % lineCount;
-    int currLine;
+    int currLine = 0;
     wordDict.clear();
     wordDict.seekg(0);
 

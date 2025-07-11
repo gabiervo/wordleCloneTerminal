@@ -116,8 +116,6 @@ class Game{
     //necessary so that esc quits at once instead of delaying
     ESCDELAY = 0;
     keypad(stdscr, TRUE);
-    getmaxyx(stdscr, row, col);
-    debugWin = newwin(4, col, 0, 0);
 
     start_color();
     //here so that ncurses doesn't change terminal background color
@@ -130,6 +128,10 @@ class Game{
   }
 
   void gameInit(){
+
+    getmaxyx(stdscr, row, col);
+    debugWin = newwin(4, col, 0, 0);
+
     //initializes the rest of the class
     memset(&poller, 0, sizeof(poller));
     poller.fd = 0;
@@ -144,13 +146,17 @@ class Game{
   }
 
   bool gameLoop(){
+    bool shouldContinue = true;
     while(true){
       if(writerState == 0){
         if(poll(&poller, 1, 100) == 1){
           chChecker = wgetch(stdscr);
           debugger.debugIn(debugWin, chChecker);
           //esc
-          if(chChecker == 27){break;}
+          if(chChecker == 27){
+            shouldContinue = false;
+            break;
+          }
 
           //delete
           if(chChecker == 263){
@@ -166,7 +172,6 @@ class Game{
               ans = writer.checkWordInput(debugWin);
               //writerAns = accessibleAnswer
               writerAns = ans[3];
-              //writerAns = (std::vector<int>){2, 1, 0, 2, 2};
               pastResults[currentWordIndex] = writer.textBox;
               if(currentWordIndex != 6){currentWordIndex++;}
               writer.clearTextBox();
@@ -198,12 +203,13 @@ class Game{
             writer.wprintTextBox(debugWin);
           }
           else{wclear(debugWin); wrefresh(debugWin);}
-
         }
       }
 
       if(writerState == 1){
+        bool hasFinished = true;
         for(int i = 0; i < 5; i++){
+          if(writerAns[i] != 2){hasFinished = false;}
           int initXPos = 1 + 9*i;
           int printIndex = currentWordIndex-1;
 
@@ -224,19 +230,34 @@ class Game{
           usleep(100000*1);
         }
         writerState = 0;
+        if(hasFinished){break;}
       }
     }
-    return true;
+    if(shouldContinue){
+      usleep(100000*3);
+      wclear(debugWin);
+      wclear(stdscr);
+
+      wrefresh(debugWin);
+      wrefresh(stdscr);
+    }
+    return shouldContinue;
   }
 };
 
 
 int main(){
-  Game game("./dictionary/dicts/", "offline");
+  Game *game = new Game("./dictionary/dicts/", "offline");
+  bool shouldContinueGame = true;
+  game->gameSetup();
 
-  game.gameSetup();
-  game.gameInit();
-  game.gameLoop();
+  while(shouldContinueGame){
+    game->gameInit();
+    shouldContinueGame = game->gameLoop();
+
+    delete game;
+    game = new Game("./dictionary/dicts/", "offline");
+  }
 
   endwin();
   return 0;

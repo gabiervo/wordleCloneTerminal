@@ -106,7 +106,7 @@ class Game{
 
   Game(std::string generatorDir, std::string writerMode) : gen(generatorDir), writer(writerMode, gen.generateWord()){}
 
-  void gameSetup(){
+  static void gameSetup(){
     //sets up everything that only needs to be setup once
     //ncurses initialization
     initscr();
@@ -127,6 +127,12 @@ class Game{
     use_default_colors();
   }
 
+  void drawAllWindowLetterBoxes(){
+    for(int i = 0; i < 6; i++){
+      drawWindowLetterBoxes(resultsWindows[i], 0);
+    }
+  }
+
   void gameInit(){
 
     getmaxyx(stdscr, row, col);
@@ -141,8 +147,7 @@ class Game{
       //8 pixel square for each letter with 1 pixel intervals in between
       resultsWindows.emplace_back(newwin(5, 48, 5 + (5*i), (col/2-24) + 1));
     }
-
-    drawWindowLetterBoxes(resultsWindows[currentWordIndex], 0);
+    drawAllWindowLetterBoxes();
   }
 
   bool gameLoop(){
@@ -167,7 +172,8 @@ class Game{
           //enter
           else if(chChecker == 10){
             //checks if we have 5 letters in the word and if it is an actual word that exists
-            if(writer.setLetters == 5 && gen.checkWordExistence(writer.textBox)){
+            bool wordExists = gen.checkWordExistence(writer.textBox);
+            if(writer.setLetters == 5 && wordExists){
               writerState = 1;
               ans = writer.checkWordInput(debugWin);
               //writerAns = accessibleAnswer
@@ -176,11 +182,50 @@ class Game{
               if(currentWordIndex != 6){currentWordIndex++;}
               writer.clearTextBox();
             }
+            else if(!wordExists){
+              for(int i = 0; i < 5; i++){
+                int initXPos = 1 + 9*i;
+
+                uint8_t printIndent = 3;
+
+                int colorPairIndex = 3;
+                //printing background
+                for(int j = 0; j < 3; j++){
+                  int initYPos = j+1;
+                  wattron(resultsWindows[currentWordIndex], COLOR_PAIR(colorPairIndex));
+                  mvwprintw(resultsWindows[currentWordIndex], initYPos, initXPos, "       ");
+                }
+                mvwaddch(resultsWindows[currentWordIndex], 2, printIndent+initXPos, writer.textBox[i]);
+                wattroff(resultsWindows[currentWordIndex], COLOR_PAIR(colorPairIndex));
+                wrefresh(resultsWindows[currentWordIndex]);
+
+                //one fifth of a second
+                usleep(100000/5);
+              }
+              for(int i = 0; i < 5; i++){
+                int initXPos = 1 + 9*i;
+
+                uint8_t printIndent = 3;
+
+                int colorPairIndex = 3;
+                //printing background
+                for(int j = 0; j < 3; j++){
+                  int initYPos = j+1;
+                  mvwprintw(resultsWindows[currentWordIndex], initYPos, initXPos, "       ");
+                }
+                mvwaddch(resultsWindows[currentWordIndex], 2, printIndent+initXPos, writer.textBox[i]);
+                wrefresh(resultsWindows[currentWordIndex]);
+
+                //one fifth of a second
+                usleep(100000/5);
+              }
+            }
+
           }
           else if(chChecker >= 65 && chChecker <= 122){
             drawCharacterOnTextBox(resultsWindows[currentWordIndex], writer.cursor_x, writer.cursor_y, chChecker);
             writer.addCharacterToTextBox(chChecker);
-            drawWindowLetterBoxes(resultsWindows[currentWordIndex], 0);
+            drawAllWindowLetterBoxes();
           }
 
           if(debugger.shouldDebug){
@@ -247,16 +292,16 @@ class Game{
 
 
 int main(){
-  Game *game = new Game("./dictionary/dicts/", "offline");
+  Game *game;
   bool shouldContinueGame = true;
-  game->gameSetup();
+  Game::gameSetup();
 
   while(shouldContinueGame){
+    game = new Game("./dictionary/dicts/", "offline");
     game->gameInit();
     shouldContinueGame = game->gameLoop();
 
     delete game;
-    game = new Game("./dictionary/dicts/", "offline");
   }
 
   endwin();

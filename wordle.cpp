@@ -104,7 +104,7 @@ class Game{
   //good answer for game logic
   std::vector<int> writerAns;
 
-  Game(std::string generatorDir, std::string writerMode) : gen(generatorDir), writer(writerMode, gen.generateWord()){}
+  Game(std::string validWordsDir, std::string answersDir, std::string writerMode) : gen(validWordsDir, answersDir), writer(writerMode, gen.generateWord()){}
 
   static void gameSetup(){
     //sets up everything that only needs to be setup once
@@ -297,7 +297,7 @@ int main(){
   Game::gameSetup();
 
   while(shouldContinueGame){
-    game = new Game("./ValidWordsdictionary/dicts/", "offline");
+    game = new Game("./ValidWordsdictionary/dicts/", "./answersDictionary/dicts/", "offline");
     game->gameInit();
     shouldContinueGame = game->gameLoop();
 

@@ -1,8 +1,9 @@
 #include "generator.h"
 #include <fstream>
-wordGenerator::wordGenerator(std::string directory){
+wordGenerator::wordGenerator(std::string validDirectory, std::string answerDirectory){
   //initialize alphabet and directory from which we get the word dictionary
-  this->dictDirectory = directory;
+  this->validWordsDirectory = validDirectory;
+  this->answerWordsDirectory = answerDirectory;
 }
 
 std::string wordGenerator::generateWord(){
@@ -11,7 +12,7 @@ std::string wordGenerator::generateWord(){
   char letter = alphabet[rand() % 26];
   int lineIndex;
 
-  std::fstream wordDict(dictDirectory + letter + ".txt", std::ifstream::in);
+  std::fstream wordDict(answerWordsDirectory + letter + ".txt", std::ifstream::in);
   if(wordDict.good()){
     std::string target;
     int lineCount = 0;
@@ -39,7 +40,7 @@ std::string wordGenerator::generateWord(){
 }
 
 bool wordGenerator::checkWordExistence(std::string word){
-  std::fstream wordFile(dictDirectory + word[0] + ".txt", std::ifstream::in);
+  std::fstream wordFile(validWordsDirectory + word[0] + ".txt", std::ifstream::in);
   std::string target;
   while(std::getline(wordFile, target)){
     bool isWordMatch = true;

@@ -5,9 +5,10 @@
 class wordGenerator{
   public:
   const std::string alphabet = "abcdefghijklmnopqrstuvwxyz";
-  std::string dictDirectory;
+  std::string validWordsDirectory;
+  std::string answerWordsDirectory;
 
-  wordGenerator(std::string directory);
+  wordGenerator(std::string validDirectory, std::string answerDirectory);
   std::string generateWord();
   bool checkWordExistence(std::string word);
 };

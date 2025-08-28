@@ -297,7 +297,7 @@ int main(){
   Game::gameSetup();
 
   while(shouldContinueGame){
-    game = new Game("./dictionary/dicts/", "offline");
+    game = new Game("./ValidWordsdictionary/dicts/", "offline");
     game->gameInit();
     shouldContinueGame = game->gameLoop();
 
